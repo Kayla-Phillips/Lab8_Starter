@@ -26,30 +26,6 @@ async function init() {
   }
   // Add each recipe to the <main> element
   addRecipesToDocument(recipes);
-
-  let deferredPrompt;
-  const installButton = document.getElementById('install-button');
-  if (installButton) installButton.style.display = 'none';
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    console.log('beforeinstallprompt event fired!');
-    e.preventDefault();
-    deferredPrompt = e;
-    if (installButton) {
-      installButton.style.display = 'block';
-      installButton.addEventListener('click', async () => {
-        installButton.style.display = 'none';
-        deferredPrompt.prompt();
-        const result = await deferredPrompt.userChoice;
-        if (result.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-        } else {
-          console.log('User dismissed the install prompt');
-        }
-        deferredPrompt = null;
-      });
-    }
-  });
 }
 
 /**
