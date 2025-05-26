@@ -26,6 +26,30 @@ async function init() {
   }
   // Add each recipe to the <main> element
   addRecipesToDocument(recipes);
+
+  let deferredPrompt;
+  const installButton = document.getElementById('install-button');
+  if (installButton) installButton.style.display = 'none';
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('beforeinstallprompt event fired!');
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installButton) {
+      installButton.style.display = 'block';
+      installButton.addEventListener('click', async () => {
+        installButton.style.display = 'none';
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        if (result.outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        } else {
+          console.log('User dismissed the install prompt');
+        }
+        deferredPrompt = null;
+      });
+    }
+  });
 }
 
 /**
@@ -45,14 +69,33 @@ function initializeServiceWorker() {
   // We first must register our ServiceWorker here before any of the code in
   // sw.js is executed.
   // B1. TODO - Check if 'serviceWorker' is supported in the current browser
-  // B2. TODO - Listen for the 'load' event on the window object.
-  // Steps B3-B6 will be *inside* the event listener's function created in B2
-  // B3. TODO - Register './sw.js' as a service worker (The MDN article
-  //            "Using Service Workers" will help you here)
-  // B4. TODO - Once the service worker has been successfully registered, console
-  //            log that it was successful.
-  // B5. TODO - In the event that the service worker registration fails, console
-  //            log that it has failed.
+  if ('serviceWorker' in navigator) {
+    // B2. TODO - Listen for the 'load' event on the window object.
+    window.addEventListener('load', async() => {
+      // Steps B3-B6 will be *inside* the event listener's function created in B2
+      // B3. TODO - Register './sw.js' as a service worker (The MDN article
+      //            "Using Service Workers" will help you here)
+      try {
+        const registration = await navigator.serviceWorker.register('./sw.js');
+        // B4. TODO - Once the service worker has been successfully registered, console
+        //            log that it was successful.
+          console.log('ServiceWorker registration successful:', registration.scope);
+          if (registration.active) {
+            registration.active.postMessage({type:'RECIPE_URLS', payload: RECIPE_URLS});
+          } else {
+            navigator.serviceWorker.ready.then((reg) => {
+              reg.active.postMessage({type:'RECIPE_URLS', payload: RECIPE_URLS});
+            });
+          }
+      // B5. TODO - In the event that the service worker registration fails, console
+      //            log that it has failed.
+      } catch (error) {
+        console.error('ServiceWorker registration failed:', error);
+      }
+    });
+  } else {
+    console.warn('Service workers are not supported by this browser.');
+  }
   // STEPS B6 ONWARDS WILL BE IN /sw.js
 }
 
